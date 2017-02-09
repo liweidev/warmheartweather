@@ -5,9 +5,13 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -42,6 +46,11 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView carWashtext;
     private TextView sportText;
     private ImageView bingPicImg;
+    public SwipeRefreshLayout swipeRefresh;
+    private String weatherId;
+    public DrawerLayout drawerLayout;
+    private Button navButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +58,25 @@ public class WeatherActivity extends AppCompatActivity {
         initViews();
         initShardPreference();
         checkBuildVersion();
+        initLisenter();
+    }
+
+    /**
+     * 初始化监听器
+     */
+    private void initLisenter() {
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(weatherId);
+            }
+        });
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
     }
 
     /**
@@ -74,10 +102,11 @@ public class WeatherActivity extends AppCompatActivity {
         if(weatherContent!=null){
             //本地解析显示数据
             Weather weather = Utility.handleWeatherResponse(weatherContent);
+            weatherId=weather.basic.weatherId;
             showWeatherInfo(weather);
         }else {
             //从服务器获取数据
-            String weatherId = getIntent().getStringExtra("weather_id");
+            weatherId = getIntent().getStringExtra("weather_id");
             weatherLayout.setVisibility(View.INVISIBLE);
             requestWeather(weatherId);
         }
@@ -124,7 +153,8 @@ public class WeatherActivity extends AppCompatActivity {
      * 从服务器获取天气信息
      * @param weatherId
      */
-    private void requestWeather(String weatherId) {
+    public void requestWeather(String weatherId) {
+        this.weatherId=weatherId;
         String weatherUrl="http://guolin.tech/api/weather?cityid="+weatherId+"&key=666db77849ad443fb81f94ac03b7ad42";
         HttpUtil.sendOKHttpRequest(weatherUrl, new Callback() {
             @Override
@@ -133,6 +163,7 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -152,7 +183,8 @@ public class WeatherActivity extends AppCompatActivity {
                         }else{
                             Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
                         }
-                    }
+                        swipeRefresh.setRefreshing(false);
+                }
                 });
 
             }
@@ -221,6 +253,10 @@ public class WeatherActivity extends AppCompatActivity {
         carWashtext= (TextView) findViewById(R.id.car_wash_text);
         sportText= (TextView) findViewById(R.id.sport_text);
         bingPicImg= (ImageView) findViewById(R.id.bing_pic_img);
+        swipeRefresh= (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+        drawerLayout= (DrawerLayout) findViewById(R.id.drawer_layout);
+        navButton= (Button) findViewById(R.id.nav_button);
     }
 
 
